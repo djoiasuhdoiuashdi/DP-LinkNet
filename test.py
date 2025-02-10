@@ -163,7 +163,7 @@ else:
 # summary(solver.net, input_size=(3, TILE_SIZE, TILE_SIZE))  # summary(your_model, input_size=(channels, H, W))
 
 print("Now loading the model weights:", "weights/" + DATA_NAME.lower() + "_" + DEEP_NETWORK_NAME.lower() + ".th")
-solver.load("weights/" + DATA_NAME.lower() + "_" + DEEP_NETWORK_NAME.lower() + ".th")
+solver.load("weights/v3_dplinknet34.th")
 
 start_time = time()
 for idx in range(len(img_list)):
@@ -173,18 +173,23 @@ for idx in range(len(img_list)):
     print("Now processing image:", img_list[idx])
     fname, fext = os.path.splitext(img_list[idx])
     img_input = os.path.join(img_indir, img_list[idx])
-    img_output = os.path.join(img_outdir, fname + "-" + DEEP_NETWORK_NAME + ".tiff")
+    img_output = os.path.join(img_outdir, fname + ".tiff")
 
     img = cv2.imread(img_input)
-    locations, patches = get_patches(img, TILE_SIZE, TILE_SIZE)
+    locations, patches, padded, pad_bottom, pad_right, original_height, original_width = get_patches(img, TILE_SIZE,
+                                                                                                     TILE_SIZE)
     masks = []
     for idy in range(len(patches)):
         msk = solver.test_one_img_from_path(patches[idy])
         masks.append(msk)
-    prediction = stitch_together(locations, masks, tuple(img.shape[0:2]), TILE_SIZE, TILE_SIZE)
+    prediction = stitch_together(locations, masks, [original_height + pad_bottom, original_width + pad_right],
+                                 TILE_SIZE, TILE_SIZE)
     prediction[prediction >= 5.0] = 255
     prediction[prediction < 5.0] = 0
-    # prediction = np.concatenate([prediction[:, :, None], prediction[:, :, None], prediction[:, :, None]], axis=2)
+
+    if padded:
+        prediction = prediction[:original_height, :original_width]
+
     cv2.imwrite(img_output, prediction.astype(np.uint8))
 
 print("Total running time: %f sec." % (time() - start_time))

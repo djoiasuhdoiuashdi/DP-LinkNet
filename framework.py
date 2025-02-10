@@ -54,6 +54,25 @@ class MyFrame():
 
         return mask
 
+    def test_one_img_from_path_1(self, path):
+        img = np.array(path)  # .transpose(2,0,1)[None]
+        # img = cv2.imread(path)  # .transpose(2,0,1)[None]
+        img90 = np.array(np.rot90(img))
+        img1 = np.concatenate([img[None], img90[None]])
+        img2 = np.array(img1)[:, ::-1]
+        img3 = np.concatenate([img1, img2])
+        img4 = np.array(img3)[:, :, ::-1]
+        img5 = np.concatenate([img3, img4]).transpose(0, 3, 1, 2)
+        img5 = np.array(img5, np.float32) / 255.0 * 3.2 - 1.6
+        img5 = V(torch.Tensor(img5).cuda())
+
+        mask = self.net.forward(img5).squeeze().cpu().data.numpy()  # .squeeze(1)
+        mask1 = mask[:4] + mask[4:, :, ::-1]
+        mask2 = mask1[:2] + mask1[2:, ::-1]
+        mask3 = mask2[0] + np.rot90(mask2[1])[::-1, ::-1]
+
+        return mask3
+
     def forward(self, volatile=False):
         self.img = V(self.img.cuda(), volatile=volatile)
         if self.mask is not None:

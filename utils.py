@@ -1,4 +1,7 @@
 import numpy as np
+from pathlib import Path
+import os
+import cv2
 
 TILE_SIZE = 128
 PADDING_SIZE = 21  # round(TILE_SIZE / 4)
@@ -12,10 +15,22 @@ BOTTOM_EDGE = 2
 
 def get_patches(img, patch_h=TILE_SIZE, patch_w=TILE_SIZE):
     y_stride, x_stride, = patch_h - (2 * PADDING_SIZE), patch_w - (2 * PADDING_SIZE)
-    if (patch_h > img.shape[0]) or (patch_w > img.shape[1]):
-        print("Invalid cropping: Cropping dimensions larger than image shapes (%r x %r with %r)" % (
-        patch_h, patch_w, img.shape))
-        exit(1)
+    original_height, original_width = img.shape[:2]
+    pad_bottom = max(patch_h - original_height, 0)
+    pad_right = max(patch_w - original_width, 0)
+    if pad_bottom > 0 or pad_right > 0:
+        img = cv2.copyMakeBorder(
+            img,
+            top=0,
+            bottom=pad_bottom,
+            left=0,
+            right=pad_right,
+            borderType=cv2.BORDER_CONSTANT,
+            value=[1, 1, 1]  # You can change the padding color if needed
+        )
+        padded = True
+    else:
+        padded = False
 
     locations, patches = [], []
     y = 0
@@ -38,7 +53,7 @@ def get_patches(img, patch_h=TILE_SIZE, patch_w=TILE_SIZE):
             x += x_stride
         y += y_stride
 
-    return locations, patches
+    return locations, patches, padded, pad_bottom, pad_right, original_height, original_width
 
 
 def stitch_together(locations, patches, size, patch_h=TILE_SIZE, patch_w=TILE_SIZE):
@@ -80,3 +95,40 @@ def stitch_together(locations, patches, size, patch_h=TILE_SIZE, patch_w=TILE_SI
                                                                                 x_cut:x_cut + width_paste]
 
     return output
+
+
+def load_image_as_binary(image_path):
+    """Load a black and white image and convert it to a binary array."""
+    # Load the image in grayscale
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    # Convert the image to binary (0 and 1)
+    binary_array = (image > 0).astype(np.uint8)
+    return binary_array
+
+
+def calculate_psnr(im, im_gt):
+    height, width = im.shape
+    FP_mask = (im == 0) & (im_gt == 1)
+    FN_mask = (im == 1) & (im_gt == 0)
+    FP = FP_mask.sum()
+    FN = FN_mask.sum()
+    mse = (FP + FN) / (height * width)
+    return 10.0 * np.log10(1.0 / mse) if mse > 0 else float('inf')
+
+
+def get_image_files(input_dir):
+    image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff'}
+    image_files = []
+
+    # Get the list of files in the specified directory
+    for file in os.listdir(input_dir):
+        file_path = Path(input_dir) / file  # Create full path to the file
+        if file_path.is_file() and file_path.suffix.lower() in image_extensions:
+            image_files.append(file_path)
+
+    return image_files
+
+
+def get_filename_and_extension(file_path):
+    filename, file_extension = os.path.splitext(os.path.basename(file_path))
+    return filename, file_extension

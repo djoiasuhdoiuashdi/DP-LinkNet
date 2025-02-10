@@ -30,8 +30,12 @@ for idx in range(len(img_list)):
     msk = cv2.imread(os.path.join(data_root, "GT", fname + "_GT.tiff"))
 
     # extract the patches from the original document images and the corresponding ground truths
-    img_patch_locations, img_patches = get_patches(img, TILE_SIZE, TILE_SIZE)
-    msk_patch_locations, msk_patches = get_patches(msk, TILE_SIZE, TILE_SIZE)
+    img_patch_locations, img_patches, padded, pad_bottom, pad_right, original_height, original_width = get_patches(img,
+                                                                                                                   TILE_SIZE,
+                                                                                                                   TILE_SIZE)
+    msk_patch_locations, msk_patches, padded, pad_bottom, pad_right, original_height, original_width = get_patches(msk,
+                                                                                                                   TILE_SIZE,
+                                                                                                                   TILE_SIZE)
 
     print("Patches extracted:", len(img_patches))
     for idy in range(len(img_patches)):

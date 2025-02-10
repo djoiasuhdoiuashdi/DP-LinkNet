@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.utils.data as data
 
-
 def randomHueSaturationValue(image,
                              hue_shift_limit=(-180, 180),
                              sat_shift_limit=(-255, 255),
@@ -16,7 +15,7 @@ def randomHueSaturationValue(image,
         image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(image)
         hue_shift = np.random.randint(hue_shift_limit[0], hue_shift_limit[1] + 1)
-        hue_shift = np.uint8(hue_shift)
+        hue_shift = np.uint8(hue_shift % 256)
         h += hue_shift
         sat_shift = np.random.uniform(sat_shift_limit[0], sat_shift_limit[1])
         s = cv2.add(s, sat_shift)
@@ -45,8 +44,8 @@ def randomShiftScaleRotate(image, mask,
         dx = round(np.random.uniform(shift_limit[0], shift_limit[1]) * width)
         dy = round(np.random.uniform(shift_limit[0], shift_limit[1]) * height)
 
-        cc = np.math.cos(angle / 180 * np.math.pi) * sx
-        ss = np.math.sin(angle / 180 * np.math.pi) * sy
+        cc = np.cos(angle / 180 * np.pi) * sx
+        ss = np.sin(angle / 180 * np.pi) * sy
         rotate_matrix = np.array([[cc, -ss], [ss, cc]])
 
         box0 = np.array([[0, 0], [width, 0], [width, height], [0, height], ])
