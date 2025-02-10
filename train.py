@@ -127,12 +127,13 @@ for epoch in range(1, total_epoch + 1):
     else:
         loss_no_optim = 0
         train_epoch_best_loss = train_epoch_loss
+
+    if current_PSNR > best_PSNR:
         solver.save("weights/" + log_name + ".th")
+        best_PSNR = current_PSNR
 
     if epoch >= 20:
         if current_PSNR > best_PSNR:
-            solver.save("weights/" + log_name + "_" + str(epoch) + ".th")
-            best_PSNR = current_PSNR
             psnr_no_optim = 0
         else:
             psnr_no_optim += 1
