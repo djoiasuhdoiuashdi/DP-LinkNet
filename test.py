@@ -163,7 +163,7 @@ else:
 # summary(solver.net, input_size=(3, TILE_SIZE, TILE_SIZE))  # summary(your_model, input_size=(channels, H, W))
 
 print("Now loading the model weights:", "weights/" + DATA_NAME.lower() + "_" + DEEP_NETWORK_NAME.lower() + ".th")
-solver.load("weights/v3_dplinknet34.th")
+solver.load("weights/dibco_dplinknet34.th")
 
 start_time = time()
 for idx in range(len(img_list)):
