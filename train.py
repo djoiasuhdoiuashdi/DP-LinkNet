@@ -79,7 +79,7 @@ trainlist = list(map(lambda x: x[:-8], imagelist))
 
 BATCHSIZE_PER_CARD = 46  # 160
 LEARNING_RATE = 2e-4 * BATCHSIZE_PER_CARD / 32  # 0.001
-NUM_OF_WORKERS = 14  # 80
+NUM_OF_WORKERS = 32  # 80
 
 solver = MyFrame(DPLinkNet34, dice_bce_loss, LEARNING_RATE)
 
@@ -143,7 +143,6 @@ for epoch in range(1, total_epoch + 1):
         "pfmeasure": current_pfmeasure,
         "psnr": current_psnr,
         "drd": current_drd
-
     })
 
     if train_epoch_loss >= train_epoch_best_loss:
