@@ -130,7 +130,10 @@ for epoch in range(1, total_epoch + 1):
     print("********")
     print("epoch:", epoch, "    time:", int(time() - tic))
     print("train_loss:", train_epoch_loss)
+    print("Fmeasure:", current_fmeasure)
+    print("pFmeasure:", current_pfmeasure)
     print("PSNR:", current_psnr)
+    print("DRD:", current_drd)
     print("SHAPE:", SHAPE)
 
     wandb.log({
