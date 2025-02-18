@@ -73,14 +73,9 @@ def calculate_val_metrics(metric_solver):
 
 
 SHAPE = (TILE_SIZE, TILE_SIZE)
-DATA_NAME = "v4"  # BickleyDiary, DIBCO, PLM
-DEEP_NETWORK_NAME = "DPLinkNet34"
-print("Now training dataset: {}, using network model: {}".format(DATA_NAME, DEEP_NETWORK_NAME))
-
 train_root = "./dataset/train/"
 imagelist = list(filter(lambda x: x.find("img") != -1, os.listdir(train_root)))
 trainlist = list(map(lambda x: x[:-8], imagelist))
-log_name = DATA_NAME.lower() + "_" + DEEP_NETWORK_NAME.lower()
 
 BATCHSIZE_PER_CARD = 46  # 160
 LEARNING_RATE = 2e-4 * BATCHSIZE_PER_CARD / 32  # 0.001
@@ -97,19 +92,24 @@ data_loader = torch.utils.data.DataLoader(
     shuffle=True,
     num_workers=NUM_OF_WORKERS)
 
-mylog = open("logs/" + log_name + ".log", "w")
 loss_no_optim = 0
 total_epoch = 500
 train_epoch_best_loss = 100.
 psnr_no_optim = 0
 best_PSNR = 0.
+best_fmeasure = 0.
+best_pfmeasure = 0.
 
 wandb.init(
     project="DP-LinkNet",
     config={
+        "batch_size_per_card": BATCHSIZE_PER_CARD,
         "batch_size": torch.cuda.device_count() * BATCHSIZE_PER_CARD,
         "epochs": 200,
-        "learning_rate": LEARNING_RATE
+        "learning_rate": LEARNING_RATE,
+        "dataset": train_root,
+        "num_of_workers": NUM_OF_WORKERS,
+
     }
 )
 
@@ -127,11 +127,6 @@ for epoch in range(1, total_epoch + 1):
     current_fmeasure, current_pfmeasure, current_psnr, current_drd = calculate_val_metrics(solver)
     solver.net.train()
 
-    print("********", file=mylog)
-    print("epoch:", epoch, "    time:", int(time() - tic), file=mylog)
-    print("train_loss:", train_epoch_loss, file=mylog)
-    print("PSNR:", current_psnr, file=mylog)
-    print("SHAPE:", SHAPE, file=mylog)
     print("********")
     print("epoch:", epoch, "    time:", int(time() - tic))
     print("train_loss:", train_epoch_loss)
@@ -155,8 +150,16 @@ for epoch in range(1, total_epoch + 1):
         train_epoch_best_loss = train_epoch_loss
 
     if current_psnr > best_PSNR:
-        solver.save("weights/" + log_name + ".th")
+        solver.save("weights/best_psnr.th")
         best_PSNR = current_psnr
+
+    if current_fmeasure > best_fmeasure:
+        solver.save("weights/best_fmeasure.th")
+        best_fmeasure = current_fmeasure
+
+    if current_pfmeasure > best_pfmeasure:
+        solver.save("weights/best_pfmeasure.th")
+        best_pfmeasure = current_pfmeasure
 
     if epoch >= 20:
         if current_psnr > best_PSNR:
@@ -165,17 +168,13 @@ for epoch in range(1, total_epoch + 1):
             psnr_no_optim += 1
 
     if loss_no_optim > 20 or psnr_no_optim > 20:
-        print("early stop at %d epoch" % epoch, file=mylog)
         print("early stop at %d epoch" % epoch)
         break
 
     if loss_no_optim > 10:
         if solver.old_lr < 1e-7:
             break
-        solver.load("weights/" + log_name + ".th")
-        solver.update_lr(5.0, factor=True, mylog=mylog)
-    mylog.flush()
+        solver.load("weights/best_psnr.th")
+        solver.update_lr(5.0, factor=True)
 
-print("Finish!", file=mylog)
 print("Finish!")
-mylog.close()
