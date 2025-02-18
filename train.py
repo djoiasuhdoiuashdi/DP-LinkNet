@@ -9,21 +9,27 @@ from torch.autograd import Variable as V
 from data import ImageFolder
 from framework import MyFrame
 from loss import dice_bce_loss
+from metrics import calculate_metrics
 
 from networks.dplinknet import LinkNet34, DLinkNet34, DPLinkNet34
-from utils import load_image_as_binary, calculate_psnr, get_filename_and_extension, get_image_files, get_patches, \
+from utils import load_image_as_binary, get_filename_and_extension, get_image_files, get_patches, \
     stitch_together
 
 TILE_SIZE = 256
 
 
-def calculate_total_psnr(solver):
+def calculate_val_metrics(metric_solver):
     validation_images_path = "./dataset/validation"
     validation_images_ground_truth_path = "./dataset/validation/GT"
 
     validation_images = get_image_files(validation_images_path)
 
-    psnr = 0.0
+    total_fmeasure = 0.0
+    total_pfmeasure = 0.0
+    total_psnr = 0.0
+    total_drd = 0.0
+
+    length = len(validation_images)
 
     for image in validation_images:
 
@@ -35,7 +41,7 @@ def calculate_total_psnr(solver):
                                                                                                          TILE_SIZE)
         masks = []
         for idy in range(len(patches)):
-            msk = solver.test_one_img_from_path_1(patches[idy])
+            msk = metric_solver.test_one_img_from_path_1(patches[idy])
             masks.append(msk)
 
         prediction = stitch_together(locations, masks, [original_height + pad_bottom, original_width + pad_right],
@@ -45,9 +51,25 @@ def calculate_total_psnr(solver):
 
         image_gt = load_image_as_binary(os.path.join(validation_images_ground_truth_path, f"{file_name}_GT.tiff"))
 
-        psnr += calculate_psnr(prediction, image_gt)
 
-    return psnr
+        r_weight = np.loadtxt(os.path.join("./dataset/validation/r_weights", file_name + "_GT_RWeights.dat"),
+                              dtype=np.float64).flatten()[:original_height * original_width].reshape(
+            (original_height, original_width))
+        p_weight = np.loadtxt(os.path.join("./dataset/validation/p_weights", file_name + "_GT_PWeights.dat"),
+                              dtype=np.float64).flatten()[:original_height * original_width].reshape(
+            (original_height, original_width))
+        fmeasure, pfmeasure, psnr, drd = calculate_metrics(prediction, image_gt, r_weight, p_weight)
+        total_psnr += psnr
+        total_fmeasure += fmeasure
+        total_pfmeasure += pfmeasure
+        total_drd += drd
+
+    total_fmeasure = total_fmeasure / length
+    total_pfmeasure = total_pfmeasure / length
+    total_psnr = total_psnr / length
+    total_drd = total_drd / length
+
+    return total_fmeasure, total_pfmeasure, total_psnr, total_drd
 
 
 SHAPE = (TILE_SIZE, TILE_SIZE)
@@ -102,24 +124,28 @@ for epoch in range(1, total_epoch + 1):
 
     train_epoch_loss /= len(data_loader_iter)
     solver.net.eval()
-    current_PSNR = calculate_total_psnr(solver)
+    current_fmeasure, current_pfmeasure, current_psnr, current_drd = calculate_val_metrics(solver)
     solver.net.train()
 
     print("********", file=mylog)
     print("epoch:", epoch, "    time:", int(time() - tic), file=mylog)
     print("train_loss:", train_epoch_loss, file=mylog)
-    print("PSNR:", current_PSNR, file=mylog)
+    print("PSNR:", current_psnr, file=mylog)
     print("SHAPE:", SHAPE, file=mylog)
     print("********")
     print("epoch:", epoch, "    time:", int(time() - tic))
     print("train_loss:", train_epoch_loss)
-    print("PSNR:", current_PSNR)
+    print("PSNR:", current_psnr)
     print("SHAPE:", SHAPE)
 
     wandb.log({
         "train_loss": train_epoch_loss,
         "learning_rate": solver.old_lr,
-        "PSNR": current_PSNR
+        "fmeasure": current_fmeasure,
+        "pfmeasure": current_pfmeasure,
+        "psnr": current_psnr,
+        "drd": current_drd
+
     })
 
     if train_epoch_loss >= train_epoch_best_loss:
@@ -128,12 +154,12 @@ for epoch in range(1, total_epoch + 1):
         loss_no_optim = 0
         train_epoch_best_loss = train_epoch_loss
 
-    if current_PSNR > best_PSNR:
+    if current_psnr > best_PSNR:
         solver.save("weights/" + log_name + ".th")
-        best_PSNR = current_PSNR
+        best_PSNR = current_psnr
 
     if epoch >= 20:
-        if current_PSNR > best_PSNR:
+        if current_psnr > best_PSNR:
             psnr_no_optim = 0
         else:
             psnr_no_optim += 1
