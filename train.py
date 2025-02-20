@@ -16,13 +16,12 @@ from utils import load_image_as_binary, get_filename_and_extension, get_image_fi
     stitch_together
 
 TILE_SIZE = 256
-
+import argparse
 
 def calculate_val_metrics(metric_solver):
     validation_images_path = "./dataset/validation"
-    validation_images_ground_truth_path = "./dataset/validation/GT"
 
-    validation_images = get_image_files(validation_images_path)
+    validation_images = get_image_files(os.path.join(validation_images_path, "images"))
 
     total_fmeasure = 0.0
     total_pfmeasure = 0.0
@@ -49,7 +48,7 @@ def calculate_val_metrics(metric_solver):
         prediction[prediction < 5.0] = 0
         prediction[prediction >= 5.0] = 1
 
-        image_gt = load_image_as_binary(os.path.join(validation_images_ground_truth_path, f"{file_name}_GT.tiff"))
+        image_gt = load_image_as_binary(os.path.join(validation_images_path, "images_gt", f"{file_name}_GT.tiff"))
 
 
         r_weight = np.loadtxt(os.path.join("./dataset/validation/r_weights", file_name + "_GT_RWeights.dat"),
@@ -72,8 +71,12 @@ def calculate_val_metrics(metric_solver):
     return total_fmeasure, total_pfmeasure, total_psnr, total_drd
 
 
+parser = argparse.ArgumentParser(description='Prepare dataset for training.')
+parser.add_argument('--train', type=str, required=True)
+args=parser.parse_args()
+
 SHAPE = (TILE_SIZE, TILE_SIZE)
-train_root = "./dataset/train/"
+train_root = os.path.join("./dataset", args.train)
 imagelist = list(filter(lambda x: x.find("img") != -1, os.listdir(train_root)))
 trainlist = list(map(lambda x: x[:-8], imagelist))
 
@@ -152,15 +155,15 @@ for epoch in range(1, total_epoch + 1):
         train_epoch_best_loss = train_epoch_loss
 
     if current_psnr > best_PSNR:
-        solver.save("weights/best_psnr.th")
+        solver.save(os.path.join("weights", args.train ,"/best_psnr.th"))
         best_PSNR = current_psnr
 
     if current_fmeasure > best_fmeasure:
-        solver.save("weights/best_fmeasure.th")
+        solver.save(os.path.join("weights", args.train ,"/best_fmeasure.th"))
         best_fmeasure = current_fmeasure
 
     if current_pfmeasure > best_pfmeasure:
-        solver.save("weights/best_pfmeasure.th")
+        solver.save(os.path.join("weights", args.train ,"/best_pfmeasure.th"))
         best_pfmeasure = current_pfmeasure
 
     if epoch >= 20:
@@ -176,7 +179,7 @@ for epoch in range(1, total_epoch + 1):
     if loss_no_optim > 10:
         if solver.old_lr < 1e-7:
             break
-        solver.load("weights/best_psnr.th")
+        solver.load(os.path.join("weights/", args.train, "best_psnr.th"))
         solver.update_lr(5.0, factor=True)
 
 print("Finish!")

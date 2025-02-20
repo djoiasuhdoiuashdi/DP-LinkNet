@@ -3,17 +3,21 @@
 import os
 
 import cv2
-
+import argparse
 from utils import get_patches
+
+parser = argparse.ArgumentParser(description='Prepare dataset for training.')
+parser.add_argument('--input', type=str, required=True)
+args=parser.parse_args()
 
 TILE_SIZE = 256
 print("Image patch size:", TILE_SIZE, "x", TILE_SIZE)
 
-data_root = "./dataset"
-img_list = os.listdir(data_root)
+data_root = os.path.join("./dataset/", args.input)
+img_list = os.listdir(os.path.join(data_root, "images"))
 img_list.sort()
 
-data_train_dir = os.path.join(data_root, "train")
+data_train_dir = os.path.join("./dataset/", "train_" + args.input)
 if not os.path.exists(data_train_dir):
     os.makedirs(data_train_dir)
 
@@ -27,7 +31,7 @@ for idx in range(len(img_list)):
     print("Now processing image:", os.path.join(data_root, img_list[idx]))
     (fname, fext) = os.path.splitext(img_list[idx])
     img = cv2.imread(os.path.join(data_root, img_list[idx]))
-    msk = cv2.imread(os.path.join(data_root, "GT", fname + "_GT.tiff"))
+    msk = cv2.imread(os.path.join(data_root, "images_gt", fname + "_GT.tiff"))
 
     # extract the patches from the original document images and the corresponding ground truths
     img_patch_locations, img_patches, padded, pad_bottom, pad_right, original_height, original_width = get_patches(img,
