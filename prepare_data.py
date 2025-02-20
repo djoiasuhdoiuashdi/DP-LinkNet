@@ -30,7 +30,7 @@ for idx in range(len(img_list)):
 
     print("Now processing image:", os.path.join(data_root, img_list[idx]))
     (fname, fext) = os.path.splitext(img_list[idx])
-    img = cv2.imread(os.path.join(data_root, img_list[idx]))
+    img = cv2.imread(os.path.join(data_root,"images", img_list[idx]))
     msk = cv2.imread(os.path.join(data_root, "images_gt", fname + "_GT.tiff"))
 
     # extract the patches from the original document images and the corresponding ground truths
