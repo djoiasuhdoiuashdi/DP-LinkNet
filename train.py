@@ -113,7 +113,6 @@ wandb.init(
         "learning_rate": LEARNING_RATE,
         "dataset": train_root,
         "num_of_workers": NUM_OF_WORKERS,
-
     }
 )
 
@@ -156,15 +155,15 @@ for epoch in range(1, total_epoch + 1):
         train_epoch_best_loss = train_epoch_loss
 
     if current_psnr > best_PSNR:
-        solver.save(os.path.join("weights", args.train ,"/best_psnr.th"))
+        solver.save(os.path.join("weights", args.train ,"best_psnr.th"))
         best_PSNR = current_psnr
 
     if current_fmeasure > best_fmeasure:
-        solver.save(os.path.join("weights", args.train ,"/best_fmeasure.th"))
+        solver.save(os.path.join("weights", args.train ,"best_fmeasure.th"))
         best_fmeasure = current_fmeasure
 
     if current_pfmeasure > best_pfmeasure:
-        solver.save(os.path.join("weights", args.train ,"/best_pfmeasure.th"))
+        solver.save(os.path.join("weights", args.train ,"best_pfmeasure.th"))
         best_pfmeasure = current_pfmeasure
 
     if epoch >= 20:
