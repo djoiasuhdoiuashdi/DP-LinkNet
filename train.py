@@ -76,7 +76,7 @@ parser.add_argument('--train', type=str, required=True)
 args=parser.parse_args()
 
 SHAPE = (TILE_SIZE, TILE_SIZE)
-train_root = os.path.join("./dataset/", args.train)
+train_root = os.path.join("./dataset/", str(args.train))
 imagelist = list(filter(lambda x: x.find("img") != -1, os.listdir(train_root)))
 trainlist = list(map(lambda x: x[:-8], imagelist))
 
