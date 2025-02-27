@@ -148,6 +148,12 @@ for epoch in range(1, total_epoch + 1):
         "drd": current_drd
     })
 
+    if epoch >= 20:
+        if current_psnr > best_PSNR:
+            psnr_no_optim = 0
+        else:
+            psnr_no_optim += 1
+
     if train_epoch_loss >= train_epoch_best_loss:
         loss_no_optim += 1
     else:
@@ -165,12 +171,6 @@ for epoch in range(1, total_epoch + 1):
     if current_pfmeasure > best_pfmeasure:
         solver.save(os.path.join("weights", args.train ,"best_pfmeasure.th"))
         best_pfmeasure = current_pfmeasure
-
-    if epoch >= 20:
-        if current_psnr > best_PSNR:
-            psnr_no_optim = 0
-        else:
-            psnr_no_optim += 1
 
     if loss_no_optim > 20 or psnr_no_optim > 20:
         print("early stop at %d epoch" % epoch)
