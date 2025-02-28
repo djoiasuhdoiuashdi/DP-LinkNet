@@ -1,3 +1,4 @@
+import argparse
 import os
 from time import time
 
@@ -139,10 +140,15 @@ TILE_SIZE = 256
 DATA_NAME = "DIBCO"  # BickleyDiary, DIBCO, PLM
 DEEP_NETWORK_NAME = "DPLinkNet34"  # LinkNet34, DLinkNet34, DPLinkNet34
 
-img_indir = "dataset/test/"
-print("Image input directory:", img_indir)
+parser = argparse.ArgumentParser(description='Prepare dataset for training.')
+parser.add_argument('--input', type=str, required=True)
+parser.add_argument('--output', type=str, required=True)
+parser.add_argument('--weights', type=str, required=True)
+args=parser.parse_args()
 
-img_outdir = os.path.join(img_indir, "Binarized")
+img_indir = args.input
+print("Image input directory:", img_indir)
+img_outdir = os.path.join(args.output)
 if not os.path.exists(img_outdir):
     os.makedirs(img_outdir)
 print("Image output directory:", img_outdir)
@@ -159,11 +165,8 @@ elif DEEP_NETWORK_NAME == "LinkNet34":
 else:
     print("Deep network not found, please have a check!")
     exit(0)
-# print(solver.net)
-# summary(solver.net, input_size=(3, TILE_SIZE, TILE_SIZE))  # summary(your_model, input_size=(channels, H, W))
 
-print("Now loading the model weights:", "weights/" + DATA_NAME.lower() + "_" + DEEP_NETWORK_NAME.lower() + ".th")
-solver.load("weights/dibco_dplinknet34.th")
+solver.load(args.weights)
 
 start_time = time()
 for idx in range(len(img_list)):
