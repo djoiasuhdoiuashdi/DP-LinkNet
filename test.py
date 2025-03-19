@@ -179,19 +179,32 @@ for idx in range(len(img_list)):
     img_output = os.path.join(img_outdir, fname + ".tiff")
 
     img = cv2.imread(img_input)
-    locations, patches, padded, pad_bottom, pad_right, original_height, original_width = get_patches(img, TILE_SIZE,
-                                                                                                     TILE_SIZE)
+    img_h, img_w = img.shape[:2]
+    padded_w = 0
+    padded_h = 0
+    if img_h < 300:
+        img = cv2.copyMakeBorder(img, 0, 300 - img_h, 0, 0, cv2.BORDER_CONSTANT, value=(255,255,255))
+        padded_h = 300- img_h
+        img_h = 300
+    if img_w < 300:
+        padded_w = 300-img_w
+        img = cv2.copyMakeBorder(img, 0, 0, 0, 300 - img_w, cv2.BORDER_CONSTANT, value=(255,255,255))
+        img_w = 300
+
+    locations, patches = get_patches(img, TILE_SIZE, TILE_SIZE)
     masks = []
     for idy in range(len(patches)):
         msk = solver.test_one_img_from_path(patches[idy])
         masks.append(msk)
-    prediction = stitch_together(locations, masks, [original_height + pad_bottom, original_width + pad_right],
+    prediction = stitch_together(locations, masks, (img_h, img_w),
                                  TILE_SIZE, TILE_SIZE)
     prediction[prediction >= 5.0] = 255
     prediction[prediction < 5.0] = 0
 
-    if padded:
-        prediction = prediction[:original_height, :original_width]
+    if(padded_h > 0):
+        prediction = prediction[:-padded_h, :]
+    if padded_w > 0:
+        prediction = prediction[:, :-padded_w]
 
     cv2.imwrite(img_output, prediction.astype(np.uint8))
 

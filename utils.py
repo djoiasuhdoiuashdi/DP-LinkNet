@@ -15,22 +15,10 @@ BOTTOM_EDGE = 2
 
 def get_patches(img, patch_h=TILE_SIZE, patch_w=TILE_SIZE):
     y_stride, x_stride, = patch_h - (2 * PADDING_SIZE), patch_w - (2 * PADDING_SIZE)
-    original_height, original_width = img.shape[:2]
-    pad_bottom = max(patch_h - original_height, 0)
-    pad_right = max(patch_w - original_width, 0)
-    if pad_bottom > 0 or pad_right > 0:
-        img = cv2.copyMakeBorder(
-            img,
-            top=0,
-            bottom=pad_bottom,
-            left=0,
-            right=pad_right,
-            borderType=cv2.BORDER_CONSTANT,
-            value=[1, 1, 1]  # You can change the padding color if needed
-        )
-        padded = True
-    else:
-        padded = False
+    if (patch_h > img.shape[0]) or (patch_w > img.shape[1]):
+        print("Invalid cropping: Cropping dimensions larger than image shapes (%r x %r with %r)" % (
+        patch_h, patch_w, img.shape))
+        exit(1)
 
     locations, patches = [], []
     y = 0
@@ -53,7 +41,7 @@ def get_patches(img, patch_h=TILE_SIZE, patch_w=TILE_SIZE):
             x += x_stride
         y += y_stride
 
-    return locations, patches, padded, pad_bottom, pad_right, original_height, original_width
+    return locations, patches
 
 
 def stitch_together(locations, patches, size, patch_h=TILE_SIZE, patch_w=TILE_SIZE):
